@@ -1,0 +1,109 @@
+##### Analysis of Dendrometer Data ######
+# February.2017 (D.Requena)
+
+# 1. load packages
+library("ggplot2", lib.loc="~/R/win-library/3.3")
+library("sqldf", lib.loc="~/R/win-library/3.3")
+library("tcltk", lib.loc="~/R/win-library/3.3")
+
+# 2. get data (comment (daniela): this data should already be cleaned using the datacleaning_dendrometers_2016 code) 
+setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/ANALYSIS_ANOMALIES")
+dataA  <- read.table("TAM05_GEM_FOR_ANALYSIS.csv", header=TRUE, sep=",", na.strings=c("NA", "NaN", ""), dec=".", strip.white=TRUE)
+
+mode(dataA)
+class(dataA$plot_code)
+dataA$plot_code <- as.character(dataA$plot_code)
+dataA$comments <- as.character(dataA$comments)
+str(dataA)
+
+# 3. choose a plot
+dataA <- subset(dataA, plot_code == "TAM-05")
+
+# 4. Add a date column
+dataA$date <- as.Date(paste(dataA$year, dataA$month, dataA$day, sep="."), format="%Y.%m.%d") 
+
+# 5. Order by tree_tag and date 
+dataA <- dataA[order(dataA$tree_tag, dataA$date),]
+
+# 6. Replace NA,NaN, blank with NA only
+dataA[is.na(dataA)] <- NA
+
+# 7. codes to identify rows: check!! Are tree_tags unique?
+dataA$codeb   <- paste(dataA$sub_plot, dataA$tree_tag, sep=".")  
+dataA$codew   <- paste(dataA$sub_plot, dataA$tree_tag, dataA$year, dataA$month, dataA$day, sep=".") 
+
+# 8. get unique identifyer for each measurement
+uid   <- unique(dataA$codeb)
+uidii <- unique(dataA$codew)
+xx    <- c()  
+yy    <- c()
+zz    <- c()
+aa    <- c()
+bb    <- c()
+
+for (i in 1:length(dataA$codew)) { 
+  sub       <- subset(dataA, subset=(dataA$codeb == uid[i]))
+  if(length(sub$codeb) > 1) {
+    meas_int  <- difftime(sub$date[1:(length(sub$date)-1)], sub$date[2:length(sub$date)], units="days")
+    meas_int_num  <- as.numeric(meas_int)
+    meas_diff <- diff(sub$dendrometer_reading_mm, lag=1)
+    meas      <- meas_diff/(-meas_int_num)   
+    id        <- tail(sub$codew,-1)
+    xx        <- c(xx, id)
+    yy        <- c(yy, meas_int)
+    aa        <- c(aa, meas_diff)
+    zz        <- c(zz, meas)
+    #print(i)
+    #print(length(yy))
+    #print(length(xx))
+  } else {   
+    #print(paste("row number:", i))
+    #print(paste("tree number:", sub$tree_tag))
+    #print(paste("subset length:", length(sub$codeb)))
+  }
+}
+data2 <- data.frame(cbind(xx,yy,aa,zz))
+colnames(data2) <- c("codew", "measurement_interval_days", "measurement_difference", "measurement_mmperday")
+
+# 9. change data2$measurement_mmperday from a factor to a number:
+data2$measurement_mmperday <- as.numeric(as.character(data2$measurement_mmperday))
+
+data3 <- sqldf("SELECT dataA.*, data2.* FROM data2 JOIN dataA ON data2.codew = dataA.codew") 
+
+# 10. Convert from mm per day to mm per month:
+data3$measurement_mmpermonth <- (data3$measurement_mmperday * 30.44) # average number of days in a month
+
+###to chekc: write.csv(data3, file="TAM_05_data3.csv") 
+
+# 11. For every tree, find the average growth for all months (per tree)
+
+data3$average_growth_mmpermonth <-with(data3, ave (measurement_mmpermonth, codeb, FUN=function(t) mean(t, na.rm=TRUE)))
+
+# 12. Find the anomaly per tree per month by subtracting the individual monthly increases from the total average monthly growth. 
+data3$anomaly_mmpermonth <- data3$measurement_mmpermonth-data3$average_growth_mmpermonth
+
+# 13. For data visualisations, plot each tree's individual increases in a time series against the total average. 
+
+#For the whole plot, the whole time series
+
+time_series_plot <- qplot(date, anomaly_mmpermonth, data=data3, alpha=I(1/10), geom=c("point", "path"), main="TAM-05")
+time_series_plot
+
+#For the whole plot, combining years
+
+monthly_series_plot <- monthplot(ts(data3$anomaly_mmpermonth, frequency = 12, start=c(2005,7)), main="TAM-05", labels = month.name, ylab = "anomaly_mmpermonth", xlab = "month") 
+monthly_series_plot
+
+# For one tree, the whole time series
+
+data3$codeb
+cc <- subset(data3, codeb == 1.3)
+time_series_individual <- qplot(date, anomaly_mmpermonth, data=cc, alpha=I(1/10), geom=c("point", "path"), main="codeb 1.3 (TAM-05)")
+time_series_individual   
+
+# For one tree, combining years
+
+data3$codeb
+cc <- subset(data3, codeb == 1.3)
+month_series_individual <- qplot(month, anomaly_mmpermonth, data=cc, geom=c("point", "smooth"), main="codeb 1.3 (TAM-05)", colour=year, xlab = "month", ylab = "anomaly_mmpermonth")
+month_series_individual
