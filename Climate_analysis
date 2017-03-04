@@ -1,0 +1,44 @@
+###### Analysis of weather data #########
+# March.2017 (D.Requena)
+
+#to be able to download packages in these computers
+.libPaths("~/R/win-library/3.3")
+
+# load packages
+library("ggplot2", lib.loc="~/R/win-library/3.3")
+library("sqldf", lib.loc="~/R/win-library/3.3")
+
+# get data
+setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/ANALYSIS_ANOMALIES/weather_data")
+dataC  <- read.table("TAM_hourly.csv", header=TRUE, sep=",", na.strings=c("NA", "NaN", ""), dec=".", strip.white=TRUE)               #stringsAsFactors = FALSE)
+
+
+
+# 1. Make sure that the columns of "date" and "time" are understood correctly
+
+mode(dataC)
+
+dataC$date_and_time <- paste(dataC$date, dataC$time, sep=" ")
+
+dataC$date_and_time <- as.POSIXct(strptime(dataC$date_and_time,"%d.%m.%Y %H:%M:%S" ))
+
+
+
+#dataC$dd <- strptime(dataC$date, "%d/%m/%Y")  
+#dataC$tt <- strptime(dataC$time, "%H:%M:%S")
+
+str(dataC)
+
+#  as.POSIXct(strptime(paste(dataC$date), format="%d/%m/%Y"))
+
+#  dataC$date <- as.Date.character(date, format="%d/%m%Y")
+
+
+#I am having some problems configuring the time and date data, it looks like I can only do it using POSIXct
+
+
+# 2. make sure there are only numbers and NA
+# 3. Find montly Temperatures and Relative Humidity
+# 4. Plot it over time (not necesary)
+# 5. Introduce the anomaly data for the plot
+# 6. Plot the anomaly next to the weather
