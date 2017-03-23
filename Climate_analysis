@@ -13,6 +13,7 @@ library("plyr", lib.loc="~/R/win-library/3.3")
 setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/ANALYSIS_ANOMALIES/weather_data")
 dataC  <- read.table("TAM_hourly.csv", header=TRUE, sep=",", na.strings=c("NA", "NaN", ""), dec=".", strip.white=TRUE)               #stringsAsFactors = FALSE)
 
+
 # 1. FORMAT DATE AND TIME
 
 mode(dataC)
@@ -29,42 +30,109 @@ str(dataC)
 # 3. GET MONTHLY DATA
 
   # a. GET DAILY PARAMENTERS 
-daily_data <- ddply(dataC, .(date), summarize, 
-              med_temp_daily = median(Temperature_Celsius, na.rm=TRUE),
-              mean_temp_daily = mean(Temperature_Celsius, na.rm=TRUE), # you can also calc mean if you want
-              mean_humidity_daily = mean(RH_percentage, na.rm=TRUE),
-              total_rain_daily = max(Rain_mm, na.rm=FALSE) #note: na.rm for max has to be FALSE, otherwise you get -Inf instead of NA
-              # etc for the rest of your vars
-)
-str(daily_data)
+      daily_data <- ddply(dataC, .(date), summarize, 
+                    med_temp_daily = median(Temperature_Celsius, na.rm=TRUE),
+                    mean_temp_daily = mean(Temperature_Celsius, na.rm=TRUE), # you can also calc mean if you want
+                    mean_humidity_daily = mean(RH_percentage, na.rm=TRUE),
+                    total_rain_daily = max(Rain_mm, na.rm=FALSE) #note: na.rm for max has to be FALSE, otherwise you get -Inf instead of NA
+                    # etc for the rest of your vars
+      )
+      str(daily_data)
 
   # b. CONVERT NAN TO NA AND CHECK
-
-daily_data[is.na(daily_data)] <-NA
-str(daily_data)
-apply(daily_data, 2, function(x) any(is.na(x)))
+    daily_data[is.na(daily_data)] <-NA
+    str(daily_data)
+    apply(daily_data, 2, function(x) any(is.na(x)))
 
   # c. CONVERT DAILY TO MONTHLY
 
-monthly_data<-ddply(daily_data, .(date=format(date,"%Y-%m")), summarize,
-              med_temp_monthly = median(med_temp_daily, na.rm=TRUE),
-              mean_temp_monthly = mean(mean_temp_daily, na.rm=TRUE), # you can also calc mean if you want
-              mean_humidity_monthly = mean(mean_humidity_daily, na.rm=TRUE),
-              total_rain_monthly = max(total_rain_daily, na.rm=FALSE) #note: na.rm for max has to be FALSE, otherwise you get -Inf instead of NA
-              # etc for the rest of your vars
-)
-str(monthly_data)
+    monthly_data <- ddply(daily_data, .(date=format(date,"%Y-%m")), summarize,
+                    med_temp_monthly = median(med_temp_daily, na.rm=TRUE),
+                    mean_temp_monthly = mean(mean_temp_daily, na.rm=TRUE), # you can also calc mean if you want
+                    mean_humidity_monthly = mean(mean_humidity_daily, na.rm=TRUE),
+                    total_rain_monthly = max(total_rain_daily, na.rm=FALSE) #note: na.rm for max has to be FALSE, otherwise you get -Inf instead of NA
+                    # etc for the rest of your vars
+                    )
+    str(monthly_data)
 
-  # d. CONVERT NAN TO NA AND CHECK
+  # d. CONVERT NAN TO NA, ADJUST DATE FORMAT, AND ADD COLUMNS FOR DATE AND MONTH
 
-monthly_data[is.na(monthly_data)] <-NA
-str(monthly_data)
-apply(monthly_data, 2, function(x) any(is.na(x)))
+    monthly_data$date <- as.Date(paste0(c(monthly_data$date), '-01'), format="%Y-%m-%d")
+    monthly_data[is.na(monthly_data)] <-NA
+    str(monthly_data)
+    apply(monthly_data, 2, function(x) any(is.na(x)))
+    
+    monthly_data <- transform( monthly_data,               
+                    Year = format(date, '%Y'),
+                    Month= format(date, '%m'))
+    str(monthly_data)
 
-  # e. Join to the rest of data (THIS DOESNT WORK YET)
-daily_and_monthly <- join(daily_data, monthly_data, by="NULL", type="left", match="all")
+
+# 4. VISUALISE TIME SERIES
+
+  # a. for whole time series (BEST OPTION BELOW = 4.c.)
+    ggplot(monthly_data, aes(date, mean_temp_monthly)) + geom_line( aes(colour = Year))
+    
+    temperature_timeseries_X <- ggplot(monthly_data, aes(date, mean_temp_monthly)) +
+                                geom_point(aes(x=date, y=mean_temp_monthly, colour=factor(Year))) +
+                                geom_path(linetype=3)+
+                                labs(x = "Date", y = "Temperature (C)", title = "TAM Temperature timeseries")
+                                temperature_timeseries_X 
+    
+      humidity_timeseries_X <- ggplot(monthly_data, aes(date, mean_humidity_monthly)) +
+                                geom_point(aes(x=date, y=mean_humidity_monthly, colour=factor(Year))) +
+                                geom_path(linetype=3)+
+                                labs(x = "Date", y = "Humidity (%)", title = "TAM Humidity timeseries")
+                                humidity_timeseries_x 
+    
+      rainfall_timeseries_X <- ggplot(monthly_data, aes(date, total_rain_monthly)) +
+                                geom_point(aes(x=date, y=total_rain_monthly, colour=factor(Year))) +
+                                geom_path(linetype=3)+
+                                labs(x = "Date", y = "Rainfall (mm)", title = "TAM Rainfall timeseries")
+                                rainfall_timeseries_X   
+                            
+                                
+                                
+  # b. comparing years
+        temperature_yearly <- ggplot(monthly_data, aes(Month, mean_temp_monthly)) + 
+                              geom_point(aes(x=Month, y=mean_temp_monthly, colour=factor(Year))) +
+                              labs(x = "Month", y = "Temperature (C)", title = "TAM temperature")
+                              temperature_yearly
+
+            humidity_yearly <- ggplot(monthly_data, aes(Month, mean_humidity_monthly)) + 
+                              geom_point(aes(x=Month, y=mean_humidity_monthly, colour=factor(Year))) +
+                              labs(x = "Month", y = "Humidity (%)", title = "TAM humidity")
+                              humidity_yearly
 
 
-# 4. Plot it over time (not necesary)
+                  rain_yearly <- ggplot(monthly_data, aes(Month, total_rain_monthly)) + 
+                                geom_point(aes(x=Month, y=total_rain_monthly, colour=factor(Year))) +
+                                labs(x = "Month", y = "Rainfall (mm)", title = "TAM RainFall")
+                                rain_yearly
+
+  # c. with date on Y axis  
+   temperature_time_series_Y <- ggplot(monthly_data, aes(mean_temp_monthly, date)) +
+                                geom_point(aes(x=mean_temp_monthly, y=date, colour=factor(Year))) +
+                                geom_path(linetype=3)+
+                                labs(x = "Temperature (C)", y = "Date", title = "TAM Temperature timeseries")
+                                temperature_time_series_Y 
+
+      humidity_time_series_Y <- ggplot(monthly_data, aes(mean_humidity_monthly, date)) +
+                                geom_point(aes(x=mean_humidity_monthly, y=date, colour=factor(Year))) +
+                                geom_path(linetype=3)+
+                                labs(x = "Humidity (%)", y = "Date", title = "TAM Humidity timeseries")
+                                humidity_time_series_Y               
+                                
+      Rainfall_time_series_Y <- ggplot(monthly_data, aes(total_rain_monthly, date)) +
+                                geom_point(aes(x=total_rain_monthly, y=date, colour=factor(Year))) +
+                                geom_path(linetype=3)+
+                                labs(x = "Rainfall (mm)", y = "Date", title = "TAM Rainfall timeseries")
+                                Rainfall_time_series_Y               
+                                
+
 # 5. Introduce the anomaly data for the plot
+
+
+
+
 # 6. Plot the anomaly next to the weather
