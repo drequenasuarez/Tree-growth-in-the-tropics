@@ -7,38 +7,64 @@
 # load packages
 library("ggplot2", lib.loc="~/R/win-library/3.3")
 library("sqldf", lib.loc="~/R/win-library/3.3")
+library("plyr", lib.loc="~/R/win-library/3.3")
 
 # get data
 setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/ANALYSIS_ANOMALIES/weather_data")
 dataC  <- read.table("TAM_hourly.csv", header=TRUE, sep=",", na.strings=c("NA", "NaN", ""), dec=".", strip.white=TRUE)               #stringsAsFactors = FALSE)
 
-
-
-# 1. Make sure that the columns of "date" and "time" are understood correctly
+# 1. FORMAT DATE AND TIME
 
 mode(dataC)
-
-dataC$date_and_time <- paste(dataC$date, dataC$time, sep=" ")
-
-dataC$date_and_time <- as.POSIXct(strptime(dataC$date_and_time,"%d.%m.%Y %H:%M:%S" ))
-
-
-
-#dataC$dd <- strptime(dataC$date, "%d/%m/%Y")  
-#dataC$tt <- strptime(dataC$time, "%H:%M:%S")
-
 str(dataC)
 
-#  as.POSIXct(strptime(paste(dataC$date), format="%d/%m/%Y"))
+dataC$date_and_time <- paste(dataC$date, dataC$time, sep=" ")
+dataC$date_and_time <- as.POSIXct(dataC$date_and_time,format="%d/%m/%Y %H:%M:%S",tz=Sys.timezone())
+dataC$date <- as.POSIXct(dataC$date,format="%d/%m/%Y",tz=Sys.timezone())
 
-#  dataC$date <- as.Date.character(date, format="%d/%m%Y")
+# 2. MAKE SURE THERE ARE ONLY NUMBERS AND NA
+    # If there is a column in the table with "Factor" instead of "num" then there is other measurements appart from numbers and NA
+str(dataC)
+
+# 3. GET MONTHLY DATA
+
+  # a. GET DAILY PARAMENTERS 
+daily_data <- ddply(dataC, .(date), summarize, 
+              med_temp_daily = median(Temperature_Celsius, na.rm=TRUE),
+              mean_temp_daily = mean(Temperature_Celsius, na.rm=TRUE), # you can also calc mean if you want
+              mean_humidity_daily = mean(RH_percentage, na.rm=TRUE),
+              total_rain_daily = max(Rain_mm, na.rm=FALSE) #note: na.rm for max has to be FALSE, otherwise you get -Inf instead of NA
+              # etc for the rest of your vars
+)
+str(daily_data)
+
+  # b. CONVERT NAN TO NA AND CHECK
+
+daily_data[is.na(daily_data)] <-NA
+str(daily_data)
+apply(daily_data, 2, function(x) any(is.na(x)))
+
+  # c. CONVERT DAILY TO MONTHLY
+
+monthly_data<-ddply(daily_data, .(date=format(date,"%Y-%m")), summarize,
+              med_temp_monthly = median(med_temp_daily, na.rm=TRUE),
+              mean_temp_monthly = mean(mean_temp_daily, na.rm=TRUE), # you can also calc mean if you want
+              mean_humidity_monthly = mean(mean_humidity_daily, na.rm=TRUE),
+              total_rain_monthly = max(total_rain_daily, na.rm=FALSE) #note: na.rm for max has to be FALSE, otherwise you get -Inf instead of NA
+              # etc for the rest of your vars
+)
+str(monthly_data)
+
+  # d. CONVERT NAN TO NA AND CHECK
+
+monthly_data[is.na(monthly_data)] <-NA
+str(monthly_data)
+apply(monthly_data, 2, function(x) any(is.na(x)))
+
+  # e. Join to the rest of data (THIS DOESNT WORK YET)
+daily_and_monthly <- join(daily_data, monthly_data, by="NULL", type="left", match="all")
 
 
-#I am having some problems configuring the time and date data, it looks like I can only do it using POSIXct
-
-
-# 2. make sure there are only numbers and NA
-# 3. Find montly Temperatures and Relative Humidity
 # 4. Plot it over time (not necesary)
 # 5. Introduce the anomaly data for the plot
 # 6. Plot the anomaly next to the weather
