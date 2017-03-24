@@ -1,14 +1,14 @@
 ##### Analysis of Dendrometer Data ######
 # February.2017 (D.Requena)
 
-# 1. load packages
+# 1. LOAD PACKAGES
 library("ggplot2", lib.loc="~/R/win-library/3.3")
 library("sqldf", lib.loc="~/R/win-library/3.3")
 library("tcltk", lib.loc="~/R/win-library/3.3")
 
-# 2. get data (comment (daniela): this data should already be cleaned using the datacleaning_dendrometers_2016 code) 
-setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/ANALYSIS_ANOMALIES")
-dataA  <- read.table("TAM05_GEM_FOR_ANALYSIS.csv", header=TRUE, sep=",", na.strings=c("NA", "NaN", ""), dec=".", strip.white=TRUE)
+# 2. get data (This data should already be cleaned using the datacleaning_dendrometers_2016 code) 
+setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/ANALYSIS_ANOMALIES/Plots")
+dataA  <- read.table("TAM09_GEM_FOR_ANALYSIS.csv", header=TRUE, sep=",", na.strings=c("NA", "NaN", ""), dec=".", strip.white=TRUE)
 
 mode(dataA)
 class(dataA$plot_code)
@@ -17,7 +17,7 @@ dataA$comments <- as.character(dataA$comments)
 str(dataA)
 
 # 3. choose a plot
-dataA <- subset(dataA, plot_code == "TAM-05")
+dataA <- subset(dataA, plot_code == "TAM-09")
 
 # 4. Add a date column
 dataA$date <- as.Date(paste(dataA$year, dataA$month, dataA$day, sep="."), format="%Y.%m.%d") 
@@ -73,7 +73,7 @@ data3 <- sqldf("SELECT dataA.*, data2.* FROM data2 JOIN dataA ON data2.codew = d
 # 10. Convert from mm per day to mm per month:
 data3$measurement_mmpermonth <- (data3$measurement_mmperday * 30.44) # average number of days in a month
 
-###to chekc: write.csv(data3, file="TAM_05_data3.csv") 
+###to check: write.csv(data3, file="TAM_09_data3.csv") 
 
 # 11. For every tree, find the average growth for all months (per tree)
 
@@ -84,15 +84,55 @@ data3$anomaly_mmpermonth <- data3$measurement_mmpermonth-data3$average_growth_mm
 
 # 13. For data visualisations, plot each tree's individual increases in a time series against the total average. 
 
-#For the whole plot, the whole time series
 
-time_series_plot <- qplot(date, anomaly_mmpermonth, data=data3, alpha=I(1/10), geom=c("point", "path"), main="TAM-05")
-time_series_plot
+  # a. ANOMALIES: For the whole plot, the whole time series
 
-#For the whole plot, combining years
+  anomaly_timeseries_X <- ggplot(data3, aes(date, anomaly_mmpermonth))+
+                          geom_point(aes(x=date, y=anomaly_mmpermonth, colour=factor(year))) +
+                          labs(x = "Date", y = "Anomaly (mm)", 
+                          title = "TAM-09 Anomalies")
+                          anomaly_timeseries_X
+  
 
-monthly_series_plot <- monthplot(ts(data3$anomaly_mmpermonth, frequency = 12, start=c(2005,7)), main="TAM-05", labels = month.name, ylab = "anomaly_mmpermonth", xlab = "month") 
-monthly_series_plot
+  anomaly_timeseries_Y <- ggplot(data3, aes(anomaly_mmpermonth, date))+
+                          geom_point(aes(x=anomaly_mmpermonth, y=date, colour=factor(year))) +
+                          labs(x = "Anomaly (mm)", y="Date", 
+                          title = "TAM-09 Anomalies")
+                          anomaly_timeseries_Y
+ 
+  # b. ANOMALIES: For the whole plot, combining years
+
+          anomaly_years <- ggplot(data3, aes(month, anomaly_mmpermonth)) + 
+                          geom_point(aes(x=month, y=anomaly_mmpermonth, colour=factor(year))) +
+                          labs(x = "Month", y = "Anomaly (mm)", title = "Comparison of TAM-09 Anomalies")
+                          anomaly_years
+  
+  # c. ACCUMULATIVE GROWTH: For the whole plot, the whole time series
+                          
+    growth_timeseries_X <- ggplot(data3, aes(date, dendrometer_reading_mm))+
+                            geom_point(aes(x=date, y=dendrometer_reading_mm, colour=factor(year))) +
+                            labs(x = "Date", y = "Measurement (mm)", title = "TAM-09 Growth (Dendrometer bands)")
+                            growth_timeseries_X
+                          
+                          
+    growth_timeseries_Y <- ggplot(data3, aes(dendrometer_reading_mm, date))+
+                            geom_point(aes(x=dendrometer_reading_mm, y=date, colour=factor(year))) +
+                            labs(x = "Measurement (mm)", y="Date", title = "TAM-09 Growth (Dendrometer bands)")
+                            growth_timeseries_Y                 
+                          
+  # d. INDIVIDUAL GROWTH: For the whole plot, the whole time series
+                            
+ind_growth_timeseries_X <- ggplot(data3, aes(date, measurement_mmpermonth))+
+                            geom_point(aes(x=date, y=measurement_mmpermonth, colour=factor(year))) +
+                            labs(x = "Date", y = "Individual Growth (mm)", title = "TAM-09 Individual Increases")
+                            ind_growth_timeseries_X
+                            
+                            
+ind_growth_timeseries_Y <- ggplot(data3, aes(measurement_mmpermonth, date))+
+                            geom_point(aes(x=measurement_mmpermonth, y=date, colour=factor(year))) +
+                            labs(x = "Individual Growth (mm)", y="Date", title = "TAM-09 Individual Increases")
+                            ind_growth_timeseries_Y                 
+                            
 
 # For one tree, the whole time series
 
@@ -107,3 +147,4 @@ data3$codeb
 cc <- subset(data3, codeb == 1.3)
 month_series_individual <- qplot(month, anomaly_mmpermonth, data=cc, geom=c("point", "smooth"), main="codeb 1.3 (TAM-05)", colour=year, xlab = "month", ylab = "anomaly_mmpermonth")
 month_series_individual
+
