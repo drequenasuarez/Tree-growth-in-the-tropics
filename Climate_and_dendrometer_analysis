@@ -1,0 +1,147 @@
+###### Combined analysis of Growth and Climate data #######
+#April 2017 (D.Requena)
+
+# 1. LOAD PACKAGES
+  library("ggplot2", lib.loc="~/R/win-library/3.3")
+  library("sqldf", lib.loc="~/R/win-library/3.3")
+  library("tcltk", lib.loc="~/R/win-library/3.3")
+  library("zoo", lib.loc="~/R/win-library/3.3")
+  library("mondate", lib.loc="~/R/win-library/3.3")
+  library("lubridate", lib.loc="~/R/win-library/3.3")
+  library("ggpmisc", lib.loc="~/R/win-library/3.3")
+  
+
+# 2. INTRODUCE ANOMALY DATA AND CHECK STRUCTURE
+  setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/ANALYSIS_ANOMALIES/Anomalies")
+  dataD <- read.table("TAM05_Anomalies.csv", header=TRUE, sep=",", na.strings=c("NA", "NaN", ""), dec=".", 
+                      strip.white=TRUE)               #stringsAsFactors = FALSE)
+  dataD$date <- as.POSIXct(dataD$date, format = "%Y-%m-%d", tz=Sys.timezone())
+  str(dataD)
+
+# 3. ADD FINAL MONTH DATE COLUMN
+  dataD$final_monthdate <- as.character(paste(dataD$month, dataD$year, sep="."))
+
+# 4. FIND NUMBER OF MONTHS BETWEEN MEASUREMENTS (whole numbers)
+  dataD$number_months <- (dataD$measurement_interval_days*(-1))/30.44 # average number of days in a month
+  dataD$number_months <- round(dataD$number_months, digits = 0 )
+
+# 5. GET THE INITIAL DATE BETWEEN MEASUREMENTS
+  finaldate <- dataD$date
+  numberofmonths <- dataD$number_months
+  library(mondate)
+  dataD$initial_date <- as.mondate(finaldate) - numberofmonths 
+  dataD$initial_date <- as.POSIXct(dataD$initial_date, format = "%Y-%m-%d", tz=Sys.timezone())
+
+# 6. GET THE INITIAL MONTH DATE COLUMN
+  library(lubridate)
+  month(dataD$initial_date)
+  year(dataD$initial_date)
+  dataD$initial_monthdate <- paste (month(dataD$initial_date), '.', year(dataD$initial_date), sep='')
+
+# 7. INTRODUCE MONTHLY CLIMATE DATA
+  setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/ANALYSIS_ANOMALIES/weather_data/example")
+  monthly_data_example <- read.table("TAM05_weather_monthly_complete_example.csv", header=TRUE, sep=",", 
+                                     na.strings=c("NA", "NaN", ""), dec=".", strip.white=TRUE)               
+                                     #stringsAsFactors = FALSE)
+  str(monthly_data_example)
+
+# 8. ADD MONTH DATE COLUMN
+  monthly_data_example$Monthdate <- as.character(paste(monthly_data_example$Month, monthly_data_example$Year, 
+                                                     sep="."))
+
+# 9. CREATE INITIAL CLIMATE DATA TABLE
+  
+  initial_monthly_data <- monthly_data_example
+  str(initial_monthly_data)
+  names(initial_monthly_data) <- c("X", "initial_date", "initial_med_t_monthly", "initial_mean_t_monthly",
+                                   "initial_max_t_monthly","initial_min_t_monthly", "initial_mean_h_monthly",
+                                   "initial_total_r_monthly", "initial_year", "initial_month", 
+                                   "initial_observacion", "initial_monthdate")
+  #delete unecessary columns
+  initial_monthly_data$X <- NULL
+  initial_monthly_data$initial_date <- NULL
+  initial_monthly_data$initial_year <- NULL
+  initial_monthly_data$initial_month <- NULL
+  str(initial_monthly_data)
+  
+  
+# 10. CREATE FINAL DATA TABLE
+
+  final_monthly_data <- monthly_data_example
+  str(final_monthly_data)
+  names(final_monthly_data) <- c("X", "final_date", "final_med_t_monthly", "final_mean_t_monthly",
+                                   "final_max_t_monthly","final_min_t_monthly", "final_mean_h_monthly",
+                                   "final_total_r_monthly", "final_year", "final_month", 
+                                   "final_observacion", "final_monthdate")
+  #delete unecessary columns
+  final_monthly_data$X <- NULL
+  final_monthly_data$final_date <- NULL
+  final_monthly_data$final_year <- NULL
+  final_monthly_data$final_month <- NULL
+  str(final_monthly_data)
+
+# 11. JOIN DATA D, INITIAL CLIMATE DATA AND FINAL CLIMATE DATA INTO DATA E
+
+  dataE <- sqldf("SELECT dataD.*, initial_monthly_data.* FROM initial_monthly_data JOIN dataD ON initial_monthly_data.initial_monthdate = 
+               dataD.initial_monthdate") 
+  dataE$initial_monthdate <- NULL #this erases one of the TWO columns of initial_monthdate
+
+  dataE <- sqldf("SELECT dataE.*, final_monthly_data.* FROM final_monthly_data JOIN dataE ON final_monthly_data.final_monthdate = 
+               dataE.final_monthdate") 
+  dataE$final_monthdate <- NULL #this erases one of the TWO columns of final_monthdate
+  str(dataE)
+
+# 12. FIND DIFFERENCES IN MEASUREMENTS BETWEEN INITIAL AND FINAL DATE (DIVIDE BY NUMBER OF MONTHS?)
+
+  dataE$delta_med_t_monthly    <- (dataE$final_med_t_monthly - dataE$initial_med_t_monthly)/ dataE$number_months
+  dataE$delta_mean_t_monthly   <- (dataE$final_mean_t_monthly - dataE$initial_mean_t_monthly)/ dataE$number_months
+  dataE$delta_max_t_monthly    <- (dataE$final_max_t_monthly - dataE$initial_max_t_monthly)/ dataE$number_months
+  dataE$delta_min_t_monthly    <- (dataE$final_min_t_monthly - dataE$initial_min_t_monthly)/ dataE$number_months
+  dataE$delta_mean_h_monthly   <- (dataE$final_mean_h_monthly - dataE$initial_mean_h_monthly)/ dataE$number_months
+  dataE$delta_total_r_monthly  <- (dataE$final_total_r_monthly - dataE$initial_total_r_monthly)/ dataE$number_months
+
+# 13. SAVE
+  
+  setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/ANALYSIS_ANOMALIES/final_data")
+  write.csv(dataE, file="TAM05_final_data.csv") 
+  
+  
+# 14. PLOT
+
+# mean temperature
+  Anomalies_and_t <- ggplot(dataE, aes(x=delta_mean_t_monthly, y=anomaly_mmpermonth)) +
+                     theme_classic() +
+                     geom_point(alpha=1/10) +
+                     geom_smooth(method="lm", se= FALSE, formula = y ~ x) +
+                     stat_poly_eq(formula = y ~ x, 
+                                  aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+                                      parse = TRUE) + 
+                     labs(x = "Changes in Monthly Mean Temperature", y = "Growth Anomalies (mm)", 
+                          title = "Anomalies and changes in mean T for TAM05")
+                     Anomalies_and_t
+  
+  
+# mean humidity
+  Anomalies_and_h <- ggplot(dataE, aes(delta_mean_h_monthly, anomaly_mmpermonth)) +
+                     theme_classic() +
+                     geom_point(alpha=1/10) +
+                     geom_smooth(method="lm", se= FALSE, formula = y ~ x) +
+                     stat_poly_eq(formula = y ~ x, 
+                                  aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+                                  parse = TRUE) + 
+                     labs(x = "Changes in Monthly Humidity", y = "Growth Anomalies (mm)", title = 
+                          "Anomalies and changes in mean H for TAM05")
+                     Anomalies_and_h
+
+# total rainfall
+  Anomalies_and_r <- ggplot(dataE, aes(delta_total_r_monthly, anomaly_mmpermonth)) +
+                     theme_classic() +
+                     geom_point(alpha=1/10) +
+                     geom_smooth(method="lm", se= FALSE, formula = y ~ x) +
+                     stat_poly_eq(formula = y ~ x, 
+                                  aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+                                  parse = TRUE) + 
+                     labs(x = "Changes in Monthly Rainfall", y = "Growth Anomalies (mm)", title = 
+                          "Anomalies and changes in total PP for TAM05")
+                     Anomalies_and_r
+
