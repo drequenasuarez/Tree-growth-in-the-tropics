@@ -11,8 +11,7 @@ library("plyr", lib.loc="~/R/win-library/3.3")
 
 # get data
 setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/ANALYSIS_ANOMALIES/weather_data")
-dataC  <- read.table("TAM_hourly.csv", header=TRUE, sep=",", na.strings=c("NA", "NaN", ""), dec=".", strip.white=TRUE)               #stringsAsFactors = FALSE)
-
+dataC  <- read.table("TAM_hourly.csv", header=TRUE, sep=",", na.strings=c("NA", "NaN", ""), dec=".", strip.white=TRUE) #stringsAsFactors = FALSE)
 
 # 1. FORMAT DATE AND TIME
 
@@ -73,8 +72,13 @@ str(dataC)
                     Month= format(date, '%m'))
     str(monthly_data)
 
+# 4. IDENTIFY MISSING MONTHS IN EXCEL AND INTRODUCE DATA FROM WEATHER STATIONS OR AVERAGES
+    
+setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/ANALYSIS_ANOMALIES/weather_data")
+write.csv(monthly_data, file="LPG_weather_monthly.csv") 
+write.csv(daily_data, file="LPG_weather_daily.csv") 
 
-# 4. VISUALISE TIME SERIES
+# 5. VISUALISE TIME SERIES
 
   # a. for whole time series
     ggplot(monthly_data, aes(date, mean_temp_monthly)) + geom_line( aes(colour = Year))
@@ -89,7 +93,7 @@ str(dataC)
                                 geom_point(aes(x=date, y=mean_humidity_monthly, colour=factor(Year))) +
                                 geom_path(linetype=3)+
                                 labs(x = "Date", y = "Humidity (%)", title = "TAM Humidity timeseries")
-                                humidity_timeseries_x 
+                                humidity_timeseries_X
     
       rainfall_timeseries_X <- ggplot(monthly_data, aes(date, total_rain_monthly)) +
                                 geom_point(aes(x=date, y=total_rain_monthly, colour=factor(Year))) +
