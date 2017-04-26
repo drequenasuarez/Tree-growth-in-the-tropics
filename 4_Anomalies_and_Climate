@@ -10,7 +10,6 @@
   library("lubridate", lib.loc="~/R/win-library/3.3")
   library("ggpmisc", lib.loc="~/R/win-library/3.3")
   
-
 # 2. INTRODUCE ANOMALY DATA AND CHECK STRUCTURE
   setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/ANALYSIS_ANOMALIES/Anomalies")
   dataD <- read.table("TAM05_Anomalies.csv", header=TRUE, sep=",", na.strings=c("NA", "NaN", ""), dec=".", 
@@ -57,6 +56,11 @@
                                    "initial_max_t_monthly","initial_min_t_monthly", "initial_mean_h_monthly",
                                    "initial_total_r_monthly", "initial_year", "initial_month", 
                                    "initial_observacion", "initial_monthdate")
+  #(When there is no observation column on monthly_data example, use this:                                
+  #names(initial_monthly_data) <- c("X", "initial_date", "initial_med_t_monthly", "initial_mean_t_monthly",
+                                   #"initial_max_t_monthly","initial_min_t_monthly", "initial_mean_h_monthly",
+                                   #"initial_total_r_monthly", "initial_year", "initial_month", 
+                                   # "initial_monthdate")
   #delete unecessary columns
   initial_monthly_data$X <- NULL
   initial_monthly_data$initial_date <- NULL
@@ -73,6 +77,13 @@
                                    "final_max_t_monthly","final_min_t_monthly", "final_mean_h_monthly",
                                    "final_total_r_monthly", "final_year", "final_month", 
                                    "final_observacion", "final_monthdate")
+  
+  #When there is no observation column on monthly_data example, use this:    
+  #names(final_monthly_data) <- c("X", "final_date", "final_med_t_monthly", "final_mean_t_monthly",
+                                 #"final_max_t_monthly","final_min_t_monthly", "final_mean_h_monthly",
+                                 #"final_total_r_monthly", "final_year", "final_month", 
+                                 #"final_monthdate")
+  
   #delete unecessary columns
   final_monthly_data$X <- NULL
   final_monthly_data$final_date <- NULL
@@ -104,39 +115,40 @@
   
   setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/ANALYSIS_ANOMALIES/final_data")
   write.csv(dataE, file="TAM05_final_data.csv") 
-  
-  
+    
 # 14. PLOT
 
 # mean temperature
   Anomalies_and_t <- ggplot(dataE, aes(x=delta_mean_t_monthly, y=anomaly_mmpermonth)) +
                      theme_classic() +
-                     geom_point(alpha=1/10) +
+                     geom_point(aes(x=delta_mean_t_monthly, y=anomaly_mmpermonth, 
+                                    colour=factor(year)), alpha=1/2) +
                      geom_smooth(method="lm", se= FALSE, formula = y ~ x) +
                      stat_poly_eq(formula = y ~ x, 
                                   aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                                       parse = TRUE) + 
                      labs(x = "Changes in Monthly Mean Temperature", y = "Growth Anomalies (mm)", 
-                          title = "Anomalies and changes in mean T for TAM05")
+                          title = "Anomalies and changes in mean T for LPG01")
                      Anomalies_and_t
-  
   
 # mean humidity
   Anomalies_and_h <- ggplot(dataE, aes(delta_mean_h_monthly, anomaly_mmpermonth)) +
                      theme_classic() +
-                     geom_point(alpha=1/10) +
+                     geom_point(aes(x=delta_mean_h_monthly, y=anomaly_mmpermonth, 
+                                    colour=factor(year)), alpha=1/2) +
                      geom_smooth(method="lm", se= FALSE, formula = y ~ x) +
                      stat_poly_eq(formula = y ~ x, 
                                   aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                                   parse = TRUE) + 
                      labs(x = "Changes in Monthly Humidity", y = "Growth Anomalies (mm)", title = 
-                          "Anomalies and changes in mean H for TAM05")
+                          "Anomalies and changes in mean H for LPG01")
                      Anomalies_and_h
 
 # total rainfall
   Anomalies_and_r <- ggplot(dataE, aes(delta_total_r_monthly, anomaly_mmpermonth)) +
                      theme_classic() +
-                     geom_point(alpha=1/10) +
+                     geom_point(aes(x=delta_total_r_monthly, y=anomaly_mmpermonth, 
+                                    colour=factor(year)), alpha=1/2) +
                      geom_smooth(method="lm", se= FALSE, formula = y ~ x) +
                      stat_poly_eq(formula = y ~ x, 
                                   aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
@@ -144,4 +156,3 @@
                      labs(x = "Changes in Monthly Rainfall", y = "Growth Anomalies (mm)", title = 
                           "Anomalies and changes in total PP for TAM05")
                      Anomalies_and_r
-
