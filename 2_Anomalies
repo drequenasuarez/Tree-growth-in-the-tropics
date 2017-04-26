@@ -88,7 +88,6 @@ write.csv(data3, file="TAM05_anomalies.csv")
 
 # 14. For data visualisations, plot each tree's individual increases in a time series against the total average. 
 
-
   # a. ANOMALIES: For the whole plot, the whole time series
 
   anomaly_timeseries_X <- ggplot(data3, aes(date, anomaly_mmpermonth))+
@@ -97,13 +96,6 @@ write.csv(data3, file="TAM05_anomalies.csv")
                           title = "TAM-09 Anomalies")
                           anomaly_timeseries_X
   
-
-  anomaly_timeseries_Y <- ggplot(data3, aes(anomaly_mmpermonth, date))+
-                          geom_point(aes(x=anomaly_mmpermonth, y=date, colour=factor(year))) +
-                          labs(x = "Anomaly (mm)", y="Date", 
-                          title = "TAM-09 Anomalies")
-                          anomaly_timeseries_Y
- 
   # b. ANOMALIES: For the whole plot, combining years
 
           anomaly_years <- ggplot(data3, aes(month, anomaly_mmpermonth)) + 
@@ -118,7 +110,6 @@ write.csv(data3, file="TAM05_anomalies.csv")
                             labs(x = "Date", y = "Measurement (mm)", title = "TAM-09 Growth (Dendrometer bands)")
                             growth_timeseries_X
                           
-                          
     growth_timeseries_Y <- ggplot(data3, aes(dendrometer_reading_mm, date))+
                             geom_point(aes(x=dendrometer_reading_mm, y=date, colour=factor(year))) +
                             labs(x = "Measurement (mm)", y="Date", title = "TAM-09 Growth (Dendrometer bands)")
@@ -131,13 +122,6 @@ ind_growth_timeseries_X <- ggplot(data3, aes(date, measurement_mmpermonth))+
                             labs(x = "Date", y = "Individual Growth (mm)", title = "TAM-09 Individual Increases")
                             ind_growth_timeseries_X
                             
-                            
-ind_growth_timeseries_Y <- ggplot(data3, aes(measurement_mmpermonth, date))+
-                            geom_point(aes(x=measurement_mmpermonth, y=date, colour=factor(year))) +
-                            labs(x = "Individual Growth (mm)", y="Date", title = "TAM-09 Individual Increases")
-                            ind_growth_timeseries_Y                 
-                            
-
 # For one tree, the whole time series
 
 data3$codeb
