@@ -107,18 +107,24 @@
                                   right = FALSE)
   str(dbh_censusA)
 
-# 14. Join the census data to the dendrometer data
+# 17. Join the census data to the dendrometer data
   dendrometers_and_DBH <- sqldf("SELECT data3.*, dbh_censusA.* FROM dbh_censusA JOIN data3 ON dbh_censusA.tree_tag = data3.tree_tag") 
 
-# 15. Erase duplicate of "tree_tag" in dendrometers_and_DBH
+# 18. Erase duplicate of "tree_tag" in dendrometers_and_DBH
   str(dendrometers_and_DBH)
   dendrometers_and_DBH$tree_tag <- NULL
 
-# 15. Subset and Plot dendrometer data per diameter class
+# 19. If dendrometers_and_DBH is already done, just introduce data:
+  
+  setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/Diameter_classes/KEN02")
+  dendrometers_and_DBH  <- read.table("KEN02_anomalies_diameters.csv", header=TRUE, sep=",", na.strings=c("NA", "NaN", ""), dec=".", strip.white=TRUE)
+  str(dendrometers_and_DBH)
+  dendrometers_and_DBH$date <- as.Date(dendrometers_and_DBH$date)
+
+# 20. Subset and Plot dendrometer data per diameter class
 
 # a. subset and PLOT diameter class of 10-20 cm
   anomalies_dbh_10to20 <- subset(dendrometers_and_DBH, diameter_class=="10-20 cm")
-  sqldf("select count(1) from (select distinct tree_tag from anomalies_dbh_10to20)")
 
   anomaly_timeseries_X_10to20 <- ggplot(anomalies_dbh_10to20, aes(date, anomaly_mmpermonth))+
                                         geom_point(aes(x=date, y=anomaly_mmpermonth, colour=factor(year))) +
@@ -130,7 +136,6 @@
 
 # b. subset and PLOT diameter class of 20-40 cm
   anomalies_dbh_20to40 <- subset(dendrometers_and_DBH, diameter_class=="20-40 cm")
-  sqldf("select count(1) from (select distinct tree_tag from anomalies_dbh_20to40)")
 
   anomaly_timeseries_X_20to40 <- ggplot(anomalies_dbh_20to40, aes(date,anomaly_mmpermonth))+
                                         geom_point(aes(x=date, y=anomaly_mmpermonth, colour=factor(year))) +
@@ -140,10 +145,8 @@
                                         labs(x = "Date", y = "Anomaly (mm)",title = "KEN-01 Anomalies (dbh=20-40cm)")
   anomaly_timeseries_X_20to40
 
-
 # c. subset and PLOT diameter class of 40-50 cm
   anomalies_dbh_40to50 <- subset(dendrometers_and_DBH, diameter_class=="40-50 cm")
-  sqldf("select count(1) from (select distinct tree_tag from anomalies_dbh_40to50)")
 
   anomaly_timeseries_X_40to50 <- ggplot(anomalies_dbh_40to50, aes(date, anomaly_mmpermonth))+
                                         geom_point(aes(x=date, y=anomaly_mmpermonth,colour=factor(year))) +
@@ -153,10 +156,8 @@
                                         labs(x = "Date", y = "Anomaly (mm)", title = "KEN-01 Anomalies (dbh=40-50cm)")
   anomaly_timeseries_X_40to50
 
-
 # d. subset and PLOT diameter class of 50+ cm
   anomalies_dbh_50plus <- subset(dendrometers_and_DBH, diameter_class=="50+ cm")
-  sqldf("select count(1) from (select distinct tree_tag from anomalies_dbh_50plus)")
 
   anomaly_timeseries_X_50plus <- ggplot(anomalies_dbh_50plus, aes(date, anomaly_mmpermonth))+
                                         geom_point(aes(x=date, y=anomaly_mmpermonth,colour=factor(year))) +
@@ -165,10 +166,7 @@
                                         ylim(-5,5)+ #Don't use this at the start of the plots, and set it afterwards according to the overall ranges
                                         labs(x = "Date", y = "Anomaly (mm)", title = "KEN-01 Anomalies (dbh=50+ cm)")
   anomaly_timeseries_X_50plus
-
-# e. just to check, see how many tree tags there are in all  
-  sqldf("select count(1) from (select distinct tree_tag from dendrometers_and_DBH)")
   
-# 16. Save!
+# 21. Save!
 setwd("C:/Users/Daniela Requena/Google Drive/ECI_dendrometers/CSVs/Diameter_classes/KEN01")
 write.csv(dendrometers_and_DBH, file="KEN01_anomalies_diameters.csv") 
