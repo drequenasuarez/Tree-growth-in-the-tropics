@@ -16,9 +16,7 @@
   dataB$plot_code <- as.character(dataB$plot_code)
   dataB$comments <- as.character(dataB$comments)
   str(dataB)
-  #FOR KEN PLOTS
-  dataB$dendrometer_reading_mm <-dataB$dendrometer_reading_mm/10
-  
+    
 # 3. choose a plot
   dataB <- subset(dataB, plot_code == "KEN-01")
 
